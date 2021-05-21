@@ -23,11 +23,13 @@ if ~isempty(layerfolder)
     layers=layers(comp);
 
     [Z,R] = arcgridread(strcat(layerfolder,layers{1}));
+    %[Z,R] = readgeoraster(strcat(layerfolder,layers{1}));
+    
     N=length(layers);
     Z=zeros(size(Z,1),size(Z,2),N);
     
     parfor (i =1:N,parforArg)
-        progressbar(i/N)
+%         progressbar(i/N)
        Z(:,:,i)=arcgridread(strcat(layerfolder,layers{i}));
     end
     toc
@@ -42,11 +44,12 @@ vars=in.Vars;
 T2=in.T2;
 
 disp('----Modeling----')
-[map,response,minimize]=predictor2(Tdata,Z,R,indicators,vars,T2,show,method,[]);
+[map,response,minimize,roc] = predictor2(Tdata,Z,R,indicators,vars,T2,show,method,[]);
 in.Map=map;
 in.Response=response;
 in.Minimize=minimize;
 in.Method=method;
+in.Roc=roc;
 in.Z=Z;
 in.R=R;
 toc

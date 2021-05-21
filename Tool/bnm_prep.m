@@ -22,7 +22,7 @@ if isstring(layerfolder) || ischar(layerfolder)
     Z=zeros(size(Z,1),size(Z,2),N);
 
     for i =1:N
-       progressbar(i/N)
+%        progressbar(i/N)
        Z(:,:,i)=arcgridread(strcat(layerfolder,layers{i}));
        eval(strcat('T.bio',num2str(i),'=ltln2val(Z(:,:,i),R,[T.LAT],[T.LONG]);'))
     end
@@ -32,7 +32,7 @@ else
     R = layerfolder.R;
     N = size(Z,3);
     for i =1:N
-       progressbar(i/N)
+%        progressbar(i/N)
        eval(strcat('T.bio',num2str(i),'=ltln2val(Z(:,:,i),R,[T.LAT],[T.LONG]);'))
     end
 end
@@ -50,7 +50,7 @@ T2=T;
 T=T(:,4:end);
 Tdata=table();
 ex=[];
-k = 5;
+% k = 5;
 vars=[];
 for i=1:N
     if sum(i==ex)==0
@@ -58,7 +58,23 @@ for i=1:N
             f = find(Corr(i,:)>threshold);
             f = setdiff(f,i);
             ex=[ex,f];
-            model=ridge([T{:,i}],[T{:,f}],k,0);
+            Kfold = 10;
+            LengthData = length(T{:,i});
+%             if LengthData < Kfold
+%                 Kfold = length(T{:,i});
+%                 disp("Warning: too fex data to assess crossvalidation")
+%             end          
+%             Mdl = fitrlinear([T{:,f}],[T{:,i}],'KFold',Kfold,...
+%                       'Learner','leastsquares','Regularization','ridge','CrossVal','on');
+%             L = zeros(1,Kfold);
+%             for k=1:Kfold        
+%                 L(k) = loss(Mdl.Trained{k},[T{:,f}],[T{:,i}]);
+%             end
+%             [~, idx] = min(L);
+%             k = Mdl.Trained{idx}.Lambda;
+            lambda_opt = k_fCV([T{:,i}],[T{:,f}]);
+            model=ridge([T{:,i}],[T{:,f}],lambda_opt,0);
+%           model = [Mdl.Trained{idx}.Bias; Mdl.Trained{idx}.Beta];
             vars=[vars,i];
             Tdata=addprop(Tdata,{strcat('m',num2str(i))},{'table'});
             eval(strcat("Tdata.Properties.CustomProperties.m",num2str(i),"=@(X) X{:,i}-(X{:,f}*model(2:end)+model(1));"))
@@ -67,7 +83,6 @@ for i=1:N
 end
 toc
 disp('----Creating predictors----')
-figure('Name','Histogram')
 %indicators=setdiff(1:size(T,2),union(ex,vars));
 indicators=setdiff(1:size(T,2),ex);
 siz=size(indicators,2);
@@ -77,30 +92,39 @@ count=1;
 %outlier remotion must starts before saving Tdata as predictors.
 %It is highly recommended to start outlier remotion from normalized PCA
 %table
+if show
+    figure('Name','Histogram')
+end
 for i=indicators
-    subplot(D1,D2,count)
-    h=histfit(T{:,i},10,'kernel');
-    title(strcat('bio',num2str(i)))
-    eval(strcat("Tdata.bio",num2str(i),"= [get(h(2),'xdata');get(h(2),'ydata')]';"))
+    if show
+        subplot(D1,D2,count)
+        histfit(T{:,i},10,'kernel');
+        title(strcat('bio',num2str(i)))
+    end
+    [funcKernel,xdata] = ksdensity(T{:,i});    
+    funcKernel = normalize(funcKernel,'range');
+    eval(strcat("Tdata.bio",num2str(i),"= [xdata; funcKernel]';"))
     count=count+1;
 end
-figure('Name','Histogram2')
+if show
+    figure('Name','Histogram2')
+end
 siz=size(vars,2);
 D1 = floor(sqrt(siz)); % Number of rows of subplot
 D2 = D1+ceil((siz-D1^2)/D1);
 count=1;
 for i=vars
-    subplot(D1,D2,count)
-    h=histfit(eval(strcat("Tdata.Properties.CustomProperties.m",num2str(i),"(T)")),10,'kernel');
-    title(strcat('var',num2str(i)))
-    eval(strcat("Tdata.var",num2str(i),"= [get(h(2),'xdata');get(h(2),'ydata')]';"))
+    if show
+        subplot(D1,D2,count)
+        h=histfit(eval(strcat("Tdata.Properties.CustomProperties.m",num2str(i),"(T)")),10,'kernel');
+        title(strcat('var',num2str(i)))
+    end
+    [funcKernel, xdata] = ksdensity(eval(strcat("Tdata.Properties.CustomProperties.m",num2str(i),"(T)")));
+    funcKernel = normalize(funcKernel,'range');
+    eval(strcat("Tdata.var",num2str(i),"= [xdata; funcKernel]';"))
     count=count+1; 
 end
-for i=1:size(Tdata,2)
-    maxim=max(Tdata{:,i}(:,2));
-    minim=min(Tdata{:,i}(:,2));
-    Tdata{:,i}(:,2)=(Tdata{:,i}(:,2)-minim)./(maxim-minim);
-end
+
 toc
 disp('¡All done!')
 out=struct();
@@ -110,4 +134,5 @@ out.Vars=vars;
 out.T2=T2;
 out.Z=Z;
 out.R=R;
+
 end

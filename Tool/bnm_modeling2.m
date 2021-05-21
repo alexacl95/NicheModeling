@@ -14,6 +14,7 @@ vars=in.Vars;
 %T=T2(:,4:end);
 T=array2table(unique(T2{:,4:end},'rows'));
 Tpca=table();
+
 for i=indicators
     eval(strcat("Tpca.bio",num2str(i),"=T{:,i};"))
 end

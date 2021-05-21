@@ -1,4 +1,4 @@
-function score=curverock(map,R,A,show,op)
+function [score, roc] = curverock(map,R,A,show,op)
 %a=mean(map2(~isnan(map2)));
 %según veo, este script fue pensado para un proceso de optimización y
 %visualización de la curva rock
@@ -7,6 +7,7 @@ switch op
         metric=zeros(1,20);
         area=metric;
         counter=0;
+        map = real(map);
         records=ltln2val(map, R, [A.LAT], [A.LONG]);
         records=records(~isnan(records));
         runs=0.05:0.05:1;
@@ -45,6 +46,9 @@ switch op
             disp('Wrong metric selected')
             return
 end
+
+roc = trapz([0,area,1],[0,metric,1]);
+
 if show && length(runs)>1
     figure('Name','Rock')
     plot([0,area,1],[0,metric,1],[0 1],[0 1],'LineWidth',2)
