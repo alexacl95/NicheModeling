@@ -1,4 +1,4 @@
-function [map,response,minimize,roc]=predictor2(Tdata, Z, R, indicators, vars, T2, show, method, coeff)
+function [map, response, minimize, roc]=predictor2(Tdata, Z, R, indicators, vars, T2, show, method, coeff)
 
 stot = length(indicators);
 tot = stot + length(vars);
@@ -50,7 +50,7 @@ map(:) = final(:);
 
 if show
     
-    figure(3)
+    figure
     clf
     geoshow(map, R, 'DisplayType', 'surface');
     axis off
@@ -60,7 +60,7 @@ if show
         'black','Zdata', 2*ones(length(T2.LONG),1));
     axis off
     
-    figure(4)
+    figure
     clf
     geoshow(map, R, 'DisplayType','surface');
     contourcmap('jet', 0 : 0.05 : 1, 'colorbar', 'on', 'location', 'vertical')

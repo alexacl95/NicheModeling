@@ -4,10 +4,10 @@ function T = bnm_clustering(T, opt)
     
     %Setting the clustering options
     if nargin < 2        
-        DiffMag = 5;
+        DiffMag = 1;
         Distance = "mahalanobis";
         InitialCluster = 10;
-        ClassVar = 2:3;
+        ClassVar = 4:22;
         
     else        
         DiffMag = opt.DiffMag;
@@ -31,10 +31,11 @@ function T = bnm_clustering(T, opt)
     
     if ~isempty(k)        
         %Clasiffy each point into a cluster
-        [ClusterIndex, ~, ~] = spectralcluster(X, k);        
+        [ClusterIndex, ~, ~] = spectralcluster(X, k,'Distance', Distance);        
     else         
        k = 1;
-       ClusterIndex = ones(1, length(T.LAT));       
+       ClusterIndex = ones(1, length(T.LAT));
+       disp("Warning: check the spectralcluster options")
     end
     
     %Save the classification index for each point

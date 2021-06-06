@@ -1,4 +1,4 @@
-function out = bnm_prep(doc,layerfolder,show,threshold)
+function outFinal = bnm_prep(doc,layerfolder,show,threshold)
 
 tic
 
@@ -49,28 +49,29 @@ T = bnm_clustering(T);
 K = T.Properties.CustomProperties.NumClusters;
 ClusterIndex = T.Properties.CustomProperties.ClusterIndex;
 
-out = struct();
+outFinal = cell(1, K);
+
+
+T_Original = T;
 
 for ij = 1:K
     
+    T = T_Original;
     indexClusterij = find(ClusterIndex == ij);
     
     disp('----Finding correlation----')
-
-   
+    
 
     %Construction of new variables
     
     T2 = T(indexClusterij,:);
-    if ij==1
-        T = T(indexClusterij, 4:end);
-    else 
-        T = T(indexClusterij,1:end);
-    end
+    
+    T = T(indexClusterij, 4:end);
     
     if show
         correlationCircles(T,'varnames',T.Properties.VariableNames(4:end))
     end
+    
     [Corr, ~] = corr(T{:,:}, 'rows', 'complete');
     Corr = abs(Corr);
     
@@ -89,9 +90,8 @@ for ij = 1:K
                 lambda_opt = k_fCV([T{:, i}], [T{:, f}]);
                 %Revisar q pasa cuando no encuentra un lambda optimo
                 if isempty(lambda_opt)
-                    lambda_opt=0.1;
-                end
-                
+                    lambda_opt = 0.1;
+                end                
                 model = ridge([T{:,i}],[T{:,f}],lambda_opt,0);
                 vars = [vars, i];
                 Tdata = addprop(Tdata, {strcat('m', num2str(i))}, {'table'});
@@ -150,16 +150,23 @@ for ij = 1:K
         eval(strcat("Tdata.var", num2str(i), "= [xdata; funcKernel]';"))
         count = count + 1; 
     end
+    
+    out = struct();
+    
+    out.Tdata = Tdata;
+    out.Indicators = indicators;
+    out.Vars = vars;
+    out.T2 = T2;
+    out.Z = Z;
+    out.R = R;
    
-    disp('¡All done!')
-    out.Tdata{ij} = Tdata;
-    out.Indicators{ij} = indicators;
-    out.Vars{ij} = vars;
-    out.T2{ij} = T2;
-    out.Z{ij} = Z;
-    out.R{ij} = R;
+    outFinal{ij} = out;   
+    
+    
 end
 
 toc
+    
+disp('¡All done!')
 
 end
