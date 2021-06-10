@@ -1,9 +1,13 @@
-function outFinal = bnm_prep(doc,layerfolder,show,threshold)
+function outFinal = bnm_prep(doc,layerfolder,show,threshold,cluster)
 
 tic
 
 if nargin < 4
     threshold = 0.8;
+end
+
+if nargin < 5
+    cluster = true;
 end
 
 if istable(doc)
@@ -20,6 +24,7 @@ if isstring(layerfolder) || ischar(layerfolder)
     disp('----Reading layers----')
 
     [Z,R] = arcgridread(strcat(layerfolder,layers{1}));
+    
     N = length(layers);
     Z = zeros(size(Z,1),size(Z,2),N);
 
@@ -41,15 +46,34 @@ else
     end
 end
 
-%%% Finding clusters with spectral clustering %%%
-T = bnm_clustering(T);
-%toca arreglar el numero minimo de puntos por cluster
-%%% ----------------------------------------- %%%
+if cluster
+    %%% Finding clusters with spectral clustering %%%
+    disp('----Finding clusters----')
+    T = bnm_clustering(T);
+    %toca arreglar el numero minimo de puntos por cluster
+    %%% ----------------------------------------- %%%
+    K = T.Properties.CustomProperties.NumClusters;
+    ClusterIndex = T.Properties.CustomProperties.ClusterIndex;
+    disp(num2str(K)+" clusters identified")
+    
+    if show
+        figure
+        colormap(bone)
+        map = Z(:,:,1);
+        map(map>0)=0;
+        geoshow(map,R,'DisplayType','texturemap')
+        hold on
+        color = lines(K); % Generate color values
+        gscatter(T.LONG,T.LAT, ClusterIndex,color(1:K,:));
+        axis off
+    end
+else
+    K=1;
+    ClusterIndex = true(1,size(T,1));
+end
 
-K = T.Properties.CustomProperties.NumClusters;
-ClusterIndex = T.Properties.CustomProperties.ClusterIndex;
 
-outFinal = cell(1, K);
+outFinal = cell(1, length(K));
 
 
 T_Original = T;
@@ -85,8 +109,8 @@ for ij = 1:K
                 f = find(Corr(i, :) > threshold);
                 f = setdiff(f, i);
                 ex = [ex, f];
-                Kfold = 10;
-                LengthData = length(T{:, i});
+                %Kfold = 10;
+                %LengthData = length(T{:, i});
                 lambda_opt = k_fCV([T{:, i}], [T{:, f}]);
                 %Revisar q pasa cuando no encuentra un lambda optimo
                 if isempty(lambda_opt)

@@ -19,7 +19,7 @@ function T = samplingVS(ReadInfo, MapInfo, samples, factor, show, spName, replac
             score = zeros(1,5);
             breaks = [1 0.8 0.6 0.4 0.2 0];
 
-            if factor <1
+            if factor <=1
                 for i = 1 : 5
 
                     dist1 = DistanceSampling < breaks(i);
@@ -65,6 +65,10 @@ function T = samplingVS(ReadInfo, MapInfo, samples, factor, show, spName, replac
         case false
             
             DistanceSampling = 1:length(SortNormDistance);
+            factor=abs(factor);
+            if factor>1
+                SortNormDistance=SortNormDistance.^factor;
+            end
             sampled = randsample(DistanceSampling,round(samples),replacement,...
                 SortNormDistance/sum(SortNormDistance));
             

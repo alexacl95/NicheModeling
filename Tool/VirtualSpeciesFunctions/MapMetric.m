@@ -1,4 +1,8 @@
-function Metric = MapMetric(NicheMap, ModelMap, show)
+function Metric = MapMetric(NicheMap, ModelMap, show, R)
+
+    if nargin<4
+        R=[];
+    end
     
     % Deffining the Niche map without nans
     VectorNicheMap = NicheMap(:);
@@ -39,7 +43,8 @@ function Metric = MapMetric(NicheMap, ModelMap, show)
     
     Metric = 1 - trapz(LengDiffMap, DiffMap);
     
-    if show == 1         
+    if show == 1   
+        figure
         LengthNicheMap = length(VectorNicheMap);
         LengthNicheMap = linspace(0, 1, LengthNicheMap); 
         clf
@@ -48,6 +53,18 @@ function Metric = MapMetric(NicheMap, ModelMap, show)
         plot(LengthNicheMap, VectorNicheMap, 'LineWidth', 2)
         legend('Estimated','Original','Location','best')
         title(strcat(num2str(round(Metric*100,2)),'%'))
+        if ~isempty(R)
+            figure
+            subplot(1,2,1)
+            geoshow(NicheMap, R, 'DisplayType','surface');
+            axis off
+            title('Niche')
+            subplot(1,2,2)
+            geoshow(ModelMap, R, 'DisplayType','surface');
+            contourcmap('jet', 0 : 0.05 : 1, 'colorbar', 'on', 'location', 'vertical')
+            axis off
+            title('Model')
+        end
     end
     
     Metric = [Metric, metric2];

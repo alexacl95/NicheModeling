@@ -23,6 +23,7 @@ function MapInfo = VirtualSpecies(ReadInfo, InfoInitialPoint, Occupation, show)
     
     if show == 1
         figure(1)
+        clf
         geoshow(Map, R, 'DisplayType', 'surface');
         contourcmap('jet', 0 : 0.05 : 1, 'colorbar', 'on', 'location', 'vertical')
     end

@@ -1,4 +1,4 @@
-function [map, response, minimize, roc]=predictor2(Tdata, Z, R, indicators, vars, T2, show, method, coeff)
+function [map, response]=predictor2(Tdata, Z, indicators, vars, coeff)
 
 stot = length(indicators);
 tot = stot + length(vars);
@@ -46,27 +46,6 @@ final = final.^(1/sum(coeff(1 : stot)));
 
 % final=(abs(prod(response,2))).^(1/sum(coeff(1:stot)));
 map(:) = final(:);
-[minimize, roc] = curverock(map, R, T2, show, method);
-
-if show
-    
-    figure
-    clf
-    geoshow(map, R, 'DisplayType', 'surface');
-    axis off
-    contourcmap('jet', 0 : 0.05 : 1, 'colorbar', 'on', 'location', 'vertical')
-    geoshow(T2.LAT, T2.LONG, 'DisplayType', 'Point', 'Marker', 'o', ...
-        'MarkerSize', 5, 'MarkerFaceColor', [.95 .9 .8], 'MarkerEdgeColor', ...
-        'black','Zdata', 2*ones(length(T2.LONG),1));
-    axis off
-    
-    figure
-    clf
-    geoshow(map, R, 'DisplayType','surface');
-    contourcmap('jet', 0 : 0.05 : 1, 'colorbar', 'on', 'location', 'vertical')
-    axis off
-    
-end
 
 end
     

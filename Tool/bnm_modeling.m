@@ -25,7 +25,8 @@ if ~isempty(layerfolder)
     [Z, R] = arcgridread(strcat(layerfolder, layers{1}));
     
     N = length(layers);
-    Z = zeros(size(Z, 1), size(Z, 2), N);
+    dimensions=size(Z);
+    Z = zeros(dimensions(1), dimensions(1), N);
     
     parfor (i = 1:N, parforArg)
        Z(:, :, i) = arcgridread(strcat(layerfolder, layers{i}));
@@ -35,22 +36,28 @@ else
     Z = in{1}.Z;
     R = in{1}.R;
 end
-
-K = in{1}.T2.Properties.CustomProperties.NumClusters;
+dimensions=size(Z);
+try
+    K = in{1}.T2.Properties.CustomProperties.NumClusters;
+catch
+    K = 1;
+end
+maps=zeros(dimensions(1),dimensions(2),K);
+disp('----Modeling----')
 
 for ij = 1 : K
-    
+    disp("-Model "+num2str(ij))
     Tdata = in{ij}.Tdata;
     indicators = in{ij}.Indicators;
     vars = in{ij}.Vars;
     T2 = in{ij}.T2;
+    maps(:,:,ij) = predictor2(Tdata, Z, indicators, vars, []);
     
+end
+     map = max(maps,[],3);
+    [minimize, roc] = curverock(map, R, T2, show, method);
     
-    disp('----Modeling----')
-    
-    [map, response, minimize, roc] = predictor2(Tdata, Z, R, indicators, vars, T2, show, method, []);
     inFinal.Map = map;
-    inFinal.Response = response;
     inFinal.Minimize = minimize;
     inFinal.Method = method;
     inFinal.Roc = roc;
@@ -58,7 +65,28 @@ for ij = 1 : K
     inFinal.R = R;
     toc
     
-%     if show
+    if show
+    
+    figure
+    clf
+    geoshow(map, R, 'DisplayType', 'surface');
+    axis off
+    contourcmap('jet', 0 : 0.05 : 1, 'colorbar', 'on', 'location', 'vertical')
+    for ij = 1:K
+        geoshow(in{ij}.T2.LAT, in{ij}.T2.LONG, 'DisplayType', 'Point', 'Marker', 'o', ...
+            'MarkerSize', 5, 'MarkerFaceColor', [.95 .9 .8], 'MarkerEdgeColor', ...
+            'black','Zdata', 2*ones(length(in{ij}.T2.LONG),1));
+    end
+    axis off
+    
+    figure
+    clf
+    geoshow(map, R, 'DisplayType','surface');
+    contourcmap('jet', 0 : 0.05 : 1, 'colorbar', 'on', 'location', 'vertical')
+    axis off
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %     
 %     D1 = 2; % Number of rows of subplot
 %     D2 = 2;
@@ -84,8 +112,8 @@ for ij = 1 : K
 %             count = count + 1;
 % 
 %         end
-%     end
+    end
 %     
-end
+
 
 end

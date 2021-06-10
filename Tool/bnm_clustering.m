@@ -4,9 +4,10 @@ function T = bnm_clustering(T, opt)
     
     %Setting the clustering options
     if nargin < 2        
-        DiffMag = 1;
+        DiffMag = 10;
         Distance = "mahalanobis";
-        InitialCluster = 10;
+        dim = size(T,1);
+        InitialCluster = ceil(10*dim/(200+dim));
         ClassVar = 4:22;
         
     else        
@@ -18,24 +19,54 @@ function T = bnm_clustering(T, opt)
     end
 
     X = table2array(T(:, ClassVar));
-    [~, ~, D_temp] = spectralcluster(X, InitialCluster, 'Distance', Distance);
-    
-    % find order of magnitude
-    n = floor(log(abs(D_temp))./log(10));
-    INF = isinf(n);
-    n(INF) = 0;
-    
-    % find optmial number of clusters
-    k = find(n <= min(n) + DiffMag);
-    k = length(k) + sum(INF);
-    
-    if ~isempty(k)        
-        %Clasiffy each point into a cluster
-        [ClusterIndex, ~, ~] = spectralcluster(X, k,'Distance', Distance);        
-    else         
-       k = 1;
-       ClusterIndex = ones(1, length(T.LAT));
-       disp("Warning: check the spectralcluster options")
+    dims = size(X);
+    if dims(1)>dims(2)
+        try
+            [~, ~, D_temp] = spectralcluster(X, InitialCluster, 'Distance', Distance,'ClusterMethod','kmedoids');
+            % find order of magnitude
+            n = floor(log(abs(D_temp))./log(10));
+            INF = isinf(n);
+            n(INF) = 0;
+
+            % find optmial number of clusters
+            cond1=(n <= min(n) + DiffMag);
+            cond2=D_temp<=1e-3;
+            cond=cond1.*cond2;
+            k = find(cond);
+            k = length(k) + sum(INF);
+        catch
+            k=1;
+        end
+
+        try
+            %Clasiffy each point into a cluster
+            [ClusterIndex, ~, ~] = spectralcluster(X, k,'Distance', Distance,'ClusterMethod','kmedoids');
+            numElem = sum(ClusterIndex==1:k);
+            if any(numElem<10)
+                lessers=find(numElem<10);
+                numElemS=sort(numElem);
+                absorv = numElemS(end);
+                absorv = find(numElem==absorv);
+                for ik=lessers
+                    ClusterIndex(ClusterIndex==ik)=absorv;
+                end
+                finalindex=unique(ClusterIndex);
+                aux = 1;
+                for ik = finalindex'
+                    ClusterIndex(ClusterIndex==ik)=aux;
+                    aux = aux+1;
+                end
+                k=length(finalindex);
+            end
+
+        catch        
+           k = 1;
+           ClusterIndex = ones(1, length(T.LAT));
+           disp("Warning: check the spectralcluster options")
+        end
+    else
+         k = 1;
+         ClusterIndex = ones(1, length(T.LAT));
     end
     
     %Save the classification index for each point
