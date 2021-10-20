@@ -31,12 +31,13 @@ for j = indicators
     i = i + 1;
 end
 
+
 for j = vars
     xdata = Tdata{:, i}(:, 1);
     ydata = Tdata{:, i}(:, 2);
     
     response(pointer,i) = interp1(xdata, ydata.^(coeff(i)), ...
-        eval(strcat("Tdata.Properties.CustomProperties.m", num2str(j), "(array2table(data(pointer,:)));")), 'pchip', 0);
+        eval(strcat("Tdata.Properties.CustomProperties.m", num2str(j), "(data(pointer,:));")), 'pchip', 0);
     i = i + 1;
 end
 

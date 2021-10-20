@@ -5,7 +5,8 @@ function T = bnm_clustering(T, opt)
     %Setting the clustering options
     if nargin < 2        
         DiffMag = 10;
-        Distance = "mahalanobis";
+        %Distance = "mahalanobis";
+        Distance = "spearman";
         dim = size(T,1);
         InitialCluster = ceil(10*dim/(200+dim));
         ClassVar = 4:22;
@@ -14,11 +15,10 @@ function T = bnm_clustering(T, opt)
         DiffMag = opt.DiffMag;
         Distance = opt.Distance;
         InitialCluster = opt.InitialCluster;
-        ClassVar = opt.ClassVar;
-        
+        ClassVar = opt.ClassVar;   
     end
 
-    X = table2array(T(:, ClassVar));
+    X = normalize(T{:, ClassVar});
     dims = size(X);
     if dims(1)>dims(2)
         try

@@ -1,4 +1,5 @@
-function outFinal = bnm_prep(doc,layerfolder,show,threshold,cluster)
+function [outFinal,outland] = bnm_prep(doc,layerfolder,show,threshold,...
+    cluster,landscape,landsample,parallel)
 
 tic
 
@@ -8,6 +9,18 @@ end
 
 if nargin < 5
     cluster = true;
+end
+
+if nargin < 6
+    landscape = false;
+end
+
+if nargin < 7
+    landsample = 0.2;
+end
+
+if nargin < 8
+    parallel = false;
 end
 
 if istable(doc)
@@ -46,6 +59,13 @@ else
     end
 end
 
+if landscape
+    outland = bnm_prepland(Z,threshold,landsample,parallel);
+    toc
+else
+    outland = [];
+end
+
 if cluster
     %%% Finding clusters with spectral clustering %%%
     disp('----Finding clusters----')
@@ -56,7 +76,7 @@ if cluster
     ClusterIndex = T.Properties.CustomProperties.ClusterIndex;
     disp(num2str(K)+" clusters identified")
     
-    if show
+%     if show
         figure
         colormap(bone)
         map = Z(:,:,1);
@@ -66,7 +86,8 @@ if cluster
         color = lines(K); % Generate color values
         gscatter(T.LONG,T.LAT, ClusterIndex,color(1:K,:));
         axis off
-    end
+%     end
+    toc
 else
     K=1;
     ClusterIndex = true(1,size(T,1));
@@ -93,7 +114,7 @@ for ij = 1:K
     T = T(indexClusterij, 4:end);
     
     if show
-        correlationCircles(T,'varnames',T.Properties.VariableNames(4:end))
+        correlationCircles(T{:,:},'varnames',T.Properties.VariableNames)
     end
     
     [Corr, ~] = corr(T{:,:}, 'rows', 'complete');
@@ -101,25 +122,34 @@ for ij = 1:K
     
     Tdata = table();
     ex = [];
+    ex2 = ex;
     vars = [];
 
     for i = 1:N
         if sum(i == ex) == 0
             if sum(Corr(i, :) > threshold) > 1
                 f = find(Corr(i, :) > threshold);
-                f = setdiff(f, i);
+                covM = cov(T{:, f});
+                covMi = inv(covM);
+                D1 = diag(covM);
+                D2 = diag(covMi);
+                bestReg = 1-1./(D1.*D2);
+                [~,index] = sort(bestReg,'descend');
+                regresor = f(index(1));
                 ex = [ex, f];
+                f = setdiff(f, regresor);
+                ex2 = [ex2, f];
                 %Kfold = 10;
                 %LengthData = length(T{:, i});
-                lambda_opt = k_fCV([T{:, i}], [T{:, f}]);
+                lambda_opt = k_fCV([T{:, regresor}], [T{:, f}]);
                 %Revisar q pasa cuando no encuentra un lambda optimo
                 if isempty(lambda_opt)
                     lambda_opt = 0.1;
                 end                
-                model = ridge([T{:,i}],[T{:,f}],lambda_opt,0);
-                vars = [vars, i];
-                Tdata = addprop(Tdata, {strcat('m', num2str(i))}, {'table'});
-                eval(strcat("Tdata.Properties.CustomProperties.m", num2str(i), "=@(X) X{:,i}-(X{:,f}*model(2:end)+model(1));"))
+                model = ridge([T{:,regresor}],[T{:,f}],lambda_opt,0);
+                vars = [vars, regresor];
+                Tdata = addprop(Tdata, {strcat('m', num2str(regresor))}, {'table'});
+                eval(strcat("Tdata.Properties.CustomProperties.m", num2str(regresor), "=@(X) X(:,regresor)-(X(:,f)*model(2:end)+model(1));"))
             end
         end
     end
@@ -128,7 +158,7 @@ for ij = 1:K
     disp('----Creating predictors----')
 
     %indicators=setdiff(1:size(T,2),union(ex,vars));
-    indicators = setdiff(1 : size(T, 2), ex);
+    indicators = setdiff(1 : size(T, 2), ex2);
     siz = size(indicators, 2);
     D1 = floor(sqrt(siz)); % Number of rows of subplot
     D2 = D1 + ceil((siz - D1^2)/D1);
@@ -166,10 +196,10 @@ for ij = 1:K
     for i = vars
         if show
             subplot(D1,D2,count)
-            h = histfit(eval(strcat("Tdata.Properties.CustomProperties.m", num2str(i), "(T)")), 10, 'kernel');
+            h = histfit(eval(strcat("Tdata.Properties.CustomProperties.m", num2str(i), "(T{:,:})")), 10, 'kernel');
             title(strcat('var',num2str(i)))
         end
-        [funcKernel, xdata] = ksdensity(eval(strcat("Tdata.Properties.CustomProperties.m", num2str(i), "(T)")));
+        [funcKernel, xdata] = ksdensity(eval(strcat("Tdata.Properties.CustomProperties.m", num2str(i), "(T{:,:})")));
         funcKernel = normalize(funcKernel, 'range');
         eval(strcat("Tdata.var", num2str(i), "= [xdata; funcKernel]';"))
         count = count + 1; 
@@ -189,8 +219,7 @@ for ij = 1:K
     
 end
 
-toc
-    
 disp('¡All done!')
+toc
 
 end
