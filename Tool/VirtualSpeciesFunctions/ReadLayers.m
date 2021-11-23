@@ -1,5 +1,30 @@
-function ReadInfo = ReadLayers(layerfolder,parallel)
+function ReadInfo = ReadLayers(layerfolder, parallel)
+% ReadInfo = ReadLayers(layerfolder, parallel)
+%
+% DESCRIPTION
+% 'ReadLayers' read multiple environmental layers stored in '.asc' files
+%
+% REQUIRED INPUTS 
+%   layerfolder: string with the layers path 
+%
+% OPTIONAL INPUTS
+%   parallel: bolean variable (true, false), perform the file reading in parallel,
+%             (default: false)
+%
+% OUTPUTS
+%   ReadInfo: a structure containing:
+%       -Z: a 3d matrix with the layers information
+%       -R: a matrix of the layers coordinates
+%       -Map: a 2d matrix with the mean value of the layers
+%       -Indicator: a vector with the index of NaN values in the layers
+%       -Dimensions: a vector with the length of the layers 
+%                    and the number of layers  
+%       -NormalizedClimVar: A matrix of normalized layers, 
+%                    the rows are the number of layers, 
+%                    and the columns are the map shaped as a vector.  
+%%
     tic
+    
     if nargin < 2
         parallel = false;
     end
@@ -17,25 +42,26 @@ function ReadInfo = ReadLayers(layerfolder,parallel)
     layers = {LayerDir.name};
     CompareFileLayers = strncmp('bio', layers, 3);
     layers = layers(CompareFileLayers);
-    [Z,R] = arcgridread(strcat(layerfolder,layers{1}));
+    
+    %Read map and it coordinates
+    [Z,R] = arcgridread(strcat(layerfolder, layers{1}));
     N = length(layers);
-    Z = zeros(size(Z, 1), size(Z, 2),N);
+    Z = zeros(size(Z, 1), size(Z, 2), N);
 
     disp('----Reading layers----')
     
     parfor (i = 1 : N, parforArg)
-        %progressbar(i/N)
         interZ = readgeoraster(layers{i},'CoordinateSystemType','geographic');
-        %interZ = arcgridread(layers{i});
-        interZ(interZ==-9999)=NaN;
-        Z(:, :, i)=interZ;
+        interZ(interZ == -9999) = NaN;
+        Z(:, :, i) = interZ;
     end
-    %Create a new data set 
-    [Dimension1, Dimension2, Dimension3] = size(Z);
-    Map = Z(:, :, 1);
-    ClimVariables = zeros(Dimension3, Dimension1 * Dimension2);
     
-    parfor (i = 1 : Dimension3, parforArg)
+    %Create a new data set 
+    [Rows, Columns, NumLayers] = size(Z);
+    Map = Z(:, :, 1);
+    ClimVariables = zeros(NumLayers, Rows * Columns);
+    
+    parfor (i = 1 : NumLayers, parforArg)
         aux = Z(:, :, i);
         ClimVariables(i, :) = aux(:);
     end
@@ -44,17 +70,19 @@ function ReadInfo = ReadLayers(layerfolder,parallel)
     
     nanDetector = sum(ClimVariables);
     nanPositions = isnan(nanDetector);
+    
     ClimVar = ClimVariables(:,~nanPositions);
     Dimension = size(ClimVar,2);
     Map(:) = mean(ClimVariables);
     
+    % OUTPUT STORAGE
     ReadInfo.Indicator = nanPositions;
-    ReadInfo.Dimensions = [Dimension, Dimension3];
-    %ReadInfo.Distance = zeros(1, Dimension1 * Dimension2);
+    ReadInfo.Dimensions = [Dimension, NumLayers];
     ReadInfo.NormalizedClimVar = normalize(ClimVar, 2, 'range');
     ReadInfo.Map = Map;
     ReadInfo.Z = Z;
     ReadInfo.R = R;
+    
     toc
     
 end

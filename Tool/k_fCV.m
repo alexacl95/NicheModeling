@@ -1,4 +1,4 @@
-function [lambda_opt, minCVE, lambdas, CVError] = k_fCV(Y,X,nlamb,parallel,plotting)
+function [lambda_opt,minCVE,lambdas,CVError] = k_fCV(Y,X,nlamb,plotting)
 % DESCRIPTION:
 % 'k_fCV' computes a k-Fold Cross-Validation procedure (k = 10 default) to
 % detect the optimal shrinking parameter of a ridge regression for a
@@ -25,21 +25,12 @@ function [lambda_opt, minCVE, lambdas, CVError] = k_fCV(Y,X,nlamb,parallel,plott
 % Author: Santiago Ortiz (sortiza2@eafit.edu.co)
 % Date: 05/2021
 %%
-    if nargin < 5
-      plotting = 0;
-    end
     if nargin < 4
-      parallel = false;
+      plotting = 0;
     end
     if nargin < 3
       nlamb = 500;
     end
-    
-    parforArg = 0;
-    if parallel
-        parforArg=inf;
-    end
-    
     lambdas = (10.^linspace(10,-4,nlamb))'; % Sequence of lambdas
     M = length(lambdas);
     k = 10; % 10-fold Cross Validation
@@ -57,7 +48,7 @@ function [lambda_opt, minCVE, lambdas, CVError] = k_fCV(Y,X,nlamb,parallel,plott
     B = repelem(k,n-((k-1)*fold_size));
     folds = [A,B]'; % Each individual belongs to a one fold
     CVError = zeros(M,1);
-    parfor (j=1:M,parforArg) % Loop for each lambda
+    for j=1:M % Loop for each lambda
         MSE = zeros(k,1);
         for i=1:k % Loop for CV Error
             x_train = X(folds~=i,:); % Train predictors

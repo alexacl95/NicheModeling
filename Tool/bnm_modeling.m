@@ -1,4 +1,4 @@
-function inFinal = bnm_modeling(in, layerfolder, show, method, parallel,outland)
+function inFinal = bnm_modeling(in, layerfolder, show, method, parallel)
 tic
     if nargin < 4
         method = 4;
@@ -6,10 +6,6 @@ tic
 
     if nargin < 5
         parallel = false;
-    end
-    
-     if nargin < 6
-        outland = [];
     end
 
     if parallel
@@ -56,20 +52,9 @@ for ij = 1 : K
     vars = in{ij}.Vars;
     T2 = in{ij}.T2;
     maps(:,:,ij) = predictor2(Tdata, Z, indicators, vars, []);
+    
 end
      map = max(maps,[],3);
-     
-     if ~isempty(outland)
-         outmap = predictor2(outland.Tdata,Z,outland.Indicators,outland.Vars,[]);
-         param = 0.01;
-         map2 = (1+param)*map(:)./(param+outmap(:));
-%          nanmap = isnan(map2);
-%          cleanMap = rmoutliers(map2(~nanmap),'percentiles',[0,99.99]);
-%          indMax = max(cleanMap);
-%          map2(map2>indMax) = indMax;
-         map(:) = normalize(map2,'range',[0,max(map(:))]);
-     end
-     
     [minimize, roc] = curverock(map, R, T2, show, method);
     
     inFinal.Map = map;
