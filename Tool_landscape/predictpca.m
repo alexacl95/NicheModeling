@@ -1,4 +1,4 @@
-function [template,score]=predictpca(Tin,Z,R,indicators,vars,show,outlier,outlier2)
+    function [template,score]=predictpca(Tin,Z,R,indicators,vars,show,outlier,outlier2)
 reps=size(Z);
 caps=reps(3);
 template=Z(:,:,1);

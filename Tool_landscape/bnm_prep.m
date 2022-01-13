@@ -137,7 +137,8 @@ for ij = 1:K
                 [~,index] = sort(bestReg,'descend');
                 for j = index
                     try
-                        regresor = f(j);
+                        %regresor = f(j);
+                        regresor = i;
                         ex = [ex, f];
                         f = setdiff(f, regresor);
                         ex2 = [ex2, f];
@@ -150,7 +151,6 @@ for ij = 1:K
                         end                
                         model = ridge([T{:,regresor}],[T{:,f}],lambda_opt,0);
                         vars = [vars, regresor];
-                        regresor
                         Tdata = addprop(Tdata, {strcat('m', num2str(regresor))}, {'table'});
                         eval(strcat("Tdata.Properties.CustomProperties.m", num2str(regresor), "=@(X) X(:,regresor)-(X(:,f)*model(2:end)+model(1));"))
                         break
