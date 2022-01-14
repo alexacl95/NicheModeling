@@ -1,7 +1,11 @@
-function out = bnm_prepland(Z,threshold,landsample,parallel)
+function out = bnm_prepland(Z,threshold,landsample,parallel,nlambda)
 
 if nargin<4
     parallel=false;
+end
+
+if nargin<5
+    nlambda=500;
 end
     
     indMap = Z(:,:,1);
@@ -9,7 +13,11 @@ end
     dim = size(Z);
     tsize = sum(index);
     N = round(tsize*landsample);
-    samples = randsample(1:tsize, N, false);
+    if landsample==1
+        samples = 1:tsize;
+    else
+        samples = randsample(1:tsize, N, false);
+    end
     disp("--Sampling f(z) with "+num2str(N)+" samples--")
     T = zeros(N,dim(3));
     for i=1:dim(3)
@@ -28,20 +36,13 @@ end
         if sum(i == ex) == 0
             if sum(Corr(i, :) > threshold) > 1
                 f = find(Corr(i, :) > threshold);
-                covM = cov(T(:, f));
-                covMi = inv(covM);
-                D1 = diag(covM);
-                D2 = diag(covMi);
-                bestReg = 1-1./(D1.*D2);
-                [~,index] = sort(bestReg,'descend');
-                %regresor = f(index(1));
                 regresor = i;
                 ex = [ex, f];
                 f = setdiff(f, regresor);
                 ex2 = [ex2, f];
                 %Kfold = 10;
                 %LengthData = length(T{:, i});
-                lambda_opt = k_fCV(T(:, regresor), T(:, f),20,parallel);
+                lambda_opt = k_fCV(T(:, regresor), T(:, f),nlambda,parallel);
                 %lambda_opt=5;
                 %Revisar q pasa cuando no encuentra un lambda optimo
                 if isempty(lambda_opt)
